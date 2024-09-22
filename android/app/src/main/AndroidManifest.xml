@@ -1,4 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+<key>CFBundleURLTypes</key>
+<array>
+  <dict>
+    <key>CFBundleURLSchemes</key>
+    <array>
+      <string>com.googleusercontent.apps.424644119249-h2rbdt2m2rtlrt73g00gg7tr9dg0mpsk</string> <!-- Add the reverse client ID from GoogleService-Info.plist -->
+    </array>
+  </dict>
+</array>
+
     <application
         android:label="chatbot"
         android:name="${applicationName}"
