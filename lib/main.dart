@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
         
         primarySwatch: Colors.blue,
       ),
-      home: AuthCheck(), // Your authentication check widget
+      home: const AuthCheck(), // Your authentication check widget
     );
   }
 }

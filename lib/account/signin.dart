@@ -15,6 +15,7 @@ class _SignInScreenState extends State<SignInScreen> {
   bool _showEmailForm = false;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _nameController = TextEditingController(); // New controller for name
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   String? _errorMessage; // Variable to show error messages if any
@@ -27,6 +28,10 @@ class _SignInScreenState extends State<SignInScreen> {
       );
 
       if (userCredential.user != null) {
+        // Update display name after account creation
+        await userCredential.user!.updateDisplayName(_nameController.text.trim());
+
+        // Navigate to the home page
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const HomePage()),
@@ -38,28 +43,48 @@ class _SignInScreenState extends State<SignInScreen> {
       });
     }
   }
-Future<UserCredential> signInWithGoogle() async {
-  // Trigger the authentication flow
-  final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
 
-  if (googleUser == null) {
-    // The user canceled the sign-in
-    return Future.error('Sign-in aborted by user');
+  Future<void> signInWithGoogle(BuildContext context) async {
+    try {
+      // Trigger the authentication flow
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+
+      if (googleUser == null) {
+        // The user canceled the sign-in
+        return;
+      }
+
+      // Obtain the auth details from the request
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      // Create a new credential
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Once signed in, return the UserCredential
+      UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+
+      if (userCredential.user != null) {
+        // User successfully signed in
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      print("Firebase Auth Error: ${e.message}");
+      setState(() {
+        _errorMessage = e.message;
+      });
+    } catch (e) {
+      print("General Error: ${e.toString()}");
+      setState(() {
+        _errorMessage = 'An error occurred. Please try again later.';
+      });
+    }
   }
-
-  // Obtain the auth details from the request
-  final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-  // Create a new credential
-  final AuthCredential credential = GoogleAuthProvider.credential(
-    accessToken: googleAuth.accessToken,
-    idToken: googleAuth.idToken,
-  );
-
-  // Once signed in, return the UserCredential
-  return await FirebaseAuth.instance.signInWithCredential(credential);
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -92,6 +117,21 @@ Future<UserCredential> signInWithGoogle() async {
 
               // Show email form if _showEmailForm is true
               if (_showEmailForm) ...[
+                TextField(
+                  controller: _nameController, // New name field
+                  decoration: const InputDecoration(
+                    labelText: 'Name',
+                    labelStyle: TextStyle(color: Colors.white),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.white),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.white),
+                    ),
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                ),
+                const SizedBox(height: 16),
                 TextField(
                   controller: _emailController,
                   decoration: const InputDecoration(
@@ -139,7 +179,6 @@ Future<UserCredential> signInWithGoogle() async {
                   ),
               ],
 
-              // Show "Sign in with Email" button when form is not visible
               if (!_showEmailForm)
                 ElevatedButton.icon(
                   icon: Image.asset(
@@ -156,13 +195,12 @@ Future<UserCredential> signInWithGoogle() async {
                   ),
                   onPressed: () {
                     setState(() {
-                      _showEmailForm = true; // Show email and password form
+                      _showEmailForm = true;
                     });
                   },
                 ),
 
               const SizedBox(height: 16),
-              // Google sign-in button
               ElevatedButton.icon(
                 icon: Image.asset(
                   'assets/google.png',
@@ -177,11 +215,11 @@ Future<UserCredential> signInWithGoogle() async {
                   ),
                 ),
                 onPressed: () async {
-                  await signInWithGoogle();
+                  await signInWithGoogle(context);
                 },
               ),
-               const SizedBox(height: 16),
-               ElevatedButton.icon(
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
                 icon: Image.asset(
                   'assets/github.png',
                   height: 24,

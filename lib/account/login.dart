@@ -1,4 +1,5 @@
 import 'package:chatbot/account/signin.dart';
+import 'package:chatbot/home.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -15,59 +16,76 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
-void _loginWithEmailAndPassword() async {
-  try {
-    UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
-    );
-    if (userCredential.user != null) {
+
+  void _loginWithEmailAndPassword() async {
+    try {
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      if (!mounted) return; // Ensures that the widget is still active
+      if (userCredential.user != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Login Successful")),
+        );
+         Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      String message;
+      if (!mounted) return; // Ensures that the widget is still active
+      if (e.code == 'user-not-found') {
+        message = "No user found for that email.";
+      } else if (e.code == 'wrong-password') {
+        message = "Wrong password provided.";
+      } else {
+        message = "Login failed: ${e.message}";
+      }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Login Successful")),
+        SnackBar(content: Text(message)),
       );
     }
-  } on FirebaseAuthException catch (e) {
-    String message;
-    if (e.code == 'user-not-found') {
-      message = "No user found for that email.";
-    } else if (e.code == 'wrong-password') {
-      message = "Wrong password provided.";
-    } else {
-      message = "Login failed: ${e.message}";
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
   }
-}
 
+  Future<void> _loginWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        throw FirebaseAuthException(code: 'CANCELLED', message: "User cancelled Google sign-in");
 
-Future<void> _loginWithGoogle() async {
-  try {
-    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-    if (googleUser == null) {
-      throw FirebaseAuthException(code: 'CANCELLED', message: "User cancelled Google sign-in");
-    }
-    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-    final AuthCredential credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-    UserCredential userCredential = await _auth.signInWithCredential(credential);
-    if (userCredential.user != null) {
+      }
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      UserCredential userCredential = await _auth.signInWithCredential(credential);
+
+      if (!mounted) return; // Ensures that the widget is still active
+      if (userCredential.user != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Google login successful")),
+        );
+         Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return; // Ensures that the widget is still active
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Google login successful")),
+        SnackBar(content: Text("Google login failed: ${e.toString()}")),
       );
     }
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Google login failed: ${e.toString()}")),
-    );
   }
-}
 
   void _loginWithGitHub() {
     // Implement GitHub login here
+    if (!mounted) return; // Ensures that the widget is still active
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("GitHub sign-in is not yet implemented")),
     );
@@ -137,7 +155,6 @@ Future<void> _loginWithGoogle() async {
                 child: const Text("Login with Email"),
               ),
               const SizedBox(height: 16),
-              // Google button
               ElevatedButton.icon(
                 icon: Image.asset(
                   'assets/google.png',
@@ -154,7 +171,6 @@ Future<void> _loginWithGoogle() async {
                 onPressed: _loginWithGoogle,
               ),
               const SizedBox(height: 16),
-              // GitHub button
               ElevatedButton.icon(
                 icon: Image.asset(
                   'assets/github.png',
