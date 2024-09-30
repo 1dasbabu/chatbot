@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
-// import 'package:intl/intl.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -16,17 +16,16 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   bool _isChatSubmitted = false;
-  final List<Message> _messages = []; // List to store user messages
+  final List<Message> _messages = [];
   final TextEditingController _controller = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
-   User? user =
-      FirebaseAuth.instance.currentUser; // Controller for the search bar
+  User? user = FirebaseAuth.instance.currentUser;
 
   static const apiKey = api_key;
 
   final model = GenerativeModel(model: 'gemini-pro', apiKey: apiKey);
 
-  bool _showIconBar = true; // To toggle between the icon bar and search bar
+  bool _showIconBar = true;
 
   void _handleOptionTap(String text) {
     setState(() {
@@ -297,74 +296,76 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Function to handle the user details edit
-void _editUserDetails() {
-  // Close any existing modal
-  Navigator.of(context).pop();
+  void _editUserDetails() {
+    // Close any existing modal
+    Navigator.of(context).pop();
 
-  // Show the dialog for editing the username
-  showDialog(
-    context: context,
-    builder: (context) {
-      // Create a TextEditingController and set the initial value to the current display name
-      final nameController = TextEditingController(text: user?.displayName ?? '');
+    // Show the dialog for editing the username
+    showDialog(
+      context: context,
+      builder: (context) {
+        // Create a TextEditingController and set the initial value to the current display name
+        final nameController =
+            TextEditingController(text: user?.displayName ?? '');
 
-      return AlertDialog(
-        title: const Text('Edit User Name'),
-        content: TextField(
-          controller: nameController,
-          decoration: const InputDecoration(hintText: 'Enter your name'),
-        ),
-        actions: [
-          // Cancel button to close the dialog without saving
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: const Text('Cancel'),
+        return AlertDialog(
+          title: const Text('Edit User Name'),
+          content: TextField(
+            controller: nameController,
+            decoration: const InputDecoration(hintText: 'Enter your name'),
           ),
-          // Save button to update the username
-          TextButton(
-            onPressed: () async {
-              // Check if the input is not empty
-              if (nameController.text.isNotEmpty) {
-                try {
-                  // Update the user's display name in Firebase
-                  await user?.updateDisplayName(nameController.text);
+          actions: [
+            // Cancel button to close the dialog without saving
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+            // Save button to update the username
+            TextButton(
+              onPressed: () async {
+                // Check if the input is not empty
+                if (nameController.text.isNotEmpty) {
+                  try {
+                    // Update the user's display name in Firebase
+                    await user?.updateDisplayName(nameController.text);
 
-                  // Reload the user to get the updated data
-                  await user?.reload();
+                    // Reload the user to get the updated data
+                    await user?.reload();
 
-                  // Fetch the updated current user and set it in the state
-                  final updatedUser = FirebaseAuth.instance.currentUser;
+                    // Fetch the updated current user and set it in the state
+                    final updatedUser = FirebaseAuth.instance.currentUser;
 
-                  setState(() {
-                    user = updatedUser; // Update the `user` object with the refreshed data
-                  });
+                    setState(() {
+                      user =
+                          updatedUser; // Update the `user` object with the refreshed data
+                    });
 
-                  // Optionally show a success message
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Username updated successfully!')),
-                  );
+                    // Optionally show a success message
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Username updated successfully!')),
+                    );
 
-                  // Close the dialog after saving
-                  Navigator.of(context).pop();
-                } catch (e) {
-                  // Handle any errors (e.g., display an error message)
-                  print("Error updating user display name: $e");
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $e')),
-                  );
+                    // Close the dialog after saving
+                    Navigator.of(context).pop();
+                  } catch (e) {
+                    // Handle any errors (e.g., display an error message)
+                    print("Error updating user display name: $e");
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: $e')),
+                    );
+                  }
                 }
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      );
-    },
-  );
-}
-
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   Future<void> _onSendMessage() async {
     final message = _controller.text;
@@ -423,9 +424,137 @@ void _editUserDetails() {
     });
   }
 
+  void _showRecentHistory() {
+  const double iconBarHeight = 60.0;
+
+  showGeneralDialog(
+    context: context,
+    barrierDismissible: true,
+    barrierLabel: 'Recent History',
+    transitionDuration: const Duration(milliseconds: 500),
+    pageBuilder: (context, anim1, anim2) {
+      return Stack(
+        children: [
+          Positioned(
+            bottom: iconBarHeight + 70,
+            left: 20,
+            right: 20,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 1), // Start from the bottom
+                end: Offset.zero,
+              ).animate(CurvedAnimation(
+                parent: anim1,
+                curve: Curves.easeInOut, // Smooth animation
+              )),
+              child: Container(
+                padding: const EdgeInsets.all(20.0),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E2A38), // Dark blue background
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: const [
+                        Icon(Icons.history, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text(
+                          'Recent',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            fontSize: 20,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.maxFinite,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildHistoryItem('Show me Python examples'),
+                          _buildHistoryItem('Explain sorting algorithms'),
+                          _buildHistoryItem('What is a function in C++?'),
+                          _buildHistoryItem('How do I debug a program?'),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: _buildIconBar(),
+          ),
+        ],
+      );
+    },
+    transitionBuilder: (context, anim1, anim2, child) {
+      return FadeTransition(
+        opacity: CurvedAnimation(
+          parent: anim1,
+          curve: Curves.easeInOut,
+        ),
+        child: child,
+      );
+    },
+  );
+}
+
+Widget _buildHistoryItem(String title) {
+  return Container(
+    margin: const EdgeInsets.symmetric(vertical: 4),
+    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+    decoration: BoxDecoration(
+      color: const Color(0xFFC4D5E4), // Light blue background
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1E2A38), // Dark blue text
+          ),
+        ),
+        const Icon(
+          Icons.arrow_forward_ios,
+          color: Color(0xFF1E2A38),
+          size: 16,
+        ),
+      ],
+    ),
+  );
+}
+
   @override
   Widget build(BuildContext context) {
     final double statusBarHeight = MediaQuery.of(context).padding.top;
+
+    // Platform detection: use kIsWeb for web and defaultTargetPlatform for other platforms
+    bool isDesktop = !kIsWeb && (defaultTargetPlatform == TargetPlatform.windows ||
+        defaultTargetPlatform == TargetPlatform.linux ||
+        defaultTargetPlatform == TargetPlatform.macOS);
 
     return Scaffold(
       backgroundColor: const Color(0xFF021024),
@@ -435,12 +564,11 @@ void _editUserDetails() {
             child: Stack(
               children: [
                 Positioned(
-                  top: statusBarHeight +
-                      22, // Adjust based on the status bar height
+                  top: statusBarHeight + 22,
                   left: 0,
                   right: 0,
                   child: Container(
-                    height: 39.0,
+                    height: isDesktop ? 70.0 : 39.0,
                     decoration: const BoxDecoration(
                       color: Color.fromARGB(255, 150, 213, 242),
                       borderRadius: BorderRadius.vertical(
@@ -454,133 +582,130 @@ void _editUserDetails() {
                   left: 0,
                   right: 0,
                   child: Container(
-                      decoration: const BoxDecoration(
-                        color: Color.fromARGB(255, 5, 51, 94),
-                        borderRadius: BorderRadius.vertical(
-                          bottom: Radius.circular(15),
+                    decoration: const BoxDecoration(
+                      color: Color.fromARGB(255, 5, 51, 94),
+                      borderRadius: BorderRadius.vertical(
+                        bottom: Radius.circular(15),
+                      ),
+                    ),
+                    child: AppBar(
+                      backgroundColor: Colors.transparent,
+                      elevation: 0,
+                      title: Text(
+                        'RIZZ GPT',
+                        style: GoogleFonts.pacifico(
+                          color: Colors.white,
+                          fontSize: isDesktop ? 40 : 22,
                         ),
                       ),
-                      child: AppBar(
-                        backgroundColor: Colors.transparent,
-                        elevation: 0,
-                        title: Text(
-                          'RIZZ GPT',
-                          style: GoogleFonts.pacifico(
-                            color: Colors.white,
-                            fontSize: 22,
+                      actions: [
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: CircleAvatar(
+                            backgroundColor: Colors.white,
+                            radius: isDesktop ? 30 : 20,
+                            backgroundImage: user?.photoURL != null
+                                ? NetworkImage(user!.photoURL!)
+                                : null,
+                            child: user?.photoURL == null
+                                ? const Icon(Icons.person, color: Colors.black)
+                                : null,
                           ),
                         ),
-                        actions: [
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: CircleAvatar(
-                              backgroundColor: Colors.white,
-                              radius: 20, // Adjust the radius if needed
-                              backgroundImage: user?.photoURL != null
-                                  ? NetworkImage(user!
-                                      .photoURL!) // Display the user's photo if available
-                                  : null, // Leave null if there's no photoURL
-                              child: user?.photoURL == null
-                                  ? const Icon(Icons.person,
-                                      color: Colors
-                                          .black) // Placeholder icon if no photo
-                                  : null, // No child widget if photoURL exists
-                            ),
-                          ),
-                        ],
-                      )),
+                      ],
+                    ),
+                  ),
                 ),
-                Positioned.fill(
-                  top: 160,
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Show introduction text only if the chat hasn't been submitted
-                        if (!_isChatSubmitted) ...[
-                          Text(
-                            'Hello!',
-                            style: GoogleFonts.oi(
-                              color: Colors.white,
-                              fontSize: 40,
-                            ),
-                          ),
-                          Text(
-                            // 'Rizzvankar',
-                            user?.displayName?? 'Guest',
-                            style: GoogleFonts.oi(
-                              color: Colors.white,
-                              fontSize: 40,
-                            ),
-                            maxLines: 1, // Ensure it's a single line
-                            overflow: TextOverflow
-                                .ellipsis, // Add ellipsis if the text overflows
-                          ),
-                          Text(
-                            'How can I help you today?',
-                            style: GoogleFonts.caveat(
-                              color: Colors.white,
-                              fontSize: 40,
-                            ),
-                          ),
-                          const SizedBox(height: 70),
-                        ],
-
-                        // Option Cards
-                        if (!_isChatSubmitted)
-                          Container(
-                            padding: const EdgeInsets.all(20.0),
-                            decoration: BoxDecoration(
-                              color: const Color.fromARGB(255, 70, 92, 129),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Row(
-                                children: [
-                                  OptionCard(
-                                    title: '🔍 Explain recursion with examples',
-                                    icon: Icons.arrow_outward,
-                                    onTap: () {
-                                      _handleOptionTap(
-                                          '🔍 Explain recursion with examples');
-                                    },
-                                  ),
-                                  const SizedBox(width: 20),
-                                  OptionCard(
-                                    title: '📚 Show me SQL queries examples',
-                                    icon: Icons.arrow_outward,
-                                    onTap: () {
-                                      _handleOptionTap(
-                                          '📚 Show me SQL queries examples');
-                                    },
-                                  ),
-                                  const SizedBox(width: 20),
-                                  OptionCard(
-                                    title: '🚀 What are Flutter Widgets',
-                                    icon: Icons.arrow_outward,
-                                    onTap: () {
-                                      _handleOptionTap(
-                                          '🚀 Learn Flutter Widgets');
-                                    },
-                                  ),
-                                  const SizedBox(width: 20),
-                                ],
+                Padding(
+                  padding: const EdgeInsets.only(top: 140),
+                  child: Column(
+                    children: [
+                      if (!_isChatSubmitted) ...[
+                        Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Hello!',
+                                style: GoogleFonts.oi(
+                                  color: Colors.white,
+                                  fontSize: isDesktop ? 80 : 40,
+                                ),
                               ),
+                              Text(
+                                user?.displayName ?? 'Guest',
+                                style: GoogleFonts.oi(
+                                  color: Colors.white,
+                                  fontSize: isDesktop ? 80 : 40,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                'How can I help you today?',
+                                style: GoogleFonts.caveat(
+                                  color: Colors.white,
+                                  fontSize: isDesktop ? 60 : 40,
+                                ),
+                              ),
+                              const SizedBox(height: 70),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 20.0, horizontal: 20.0),
+                          decoration: BoxDecoration(
+                            color: const Color.fromARGB(255, 70, 92, 129),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                OptionCard(
+                                  title: '🔍 Explain recursion with examples',
+                                  icon: Icons.arrow_outward,
+                                  onTap: () {
+                                    _handleOptionTap(
+                                        '🔍 Explain recursion with examples');
+                                  },
+                                ),
+                                const SizedBox(width: 20),
+                                OptionCard(
+                                  title: '📚 Show me SQL queries examples',
+                                  icon: Icons.arrow_outward,
+                                  onTap: () {
+                                    _handleOptionTap(
+                                        '📚 Show me SQL queries examples');
+                                  },
+                                ),
+                                const SizedBox(width: 20),
+                                OptionCard(
+                                  title: '🚀 What are Flutter Widgets',
+                                  icon: Icons.arrow_outward,
+                                  onTap: () {
+                                    _handleOptionTap(
+                                        '🚀 Learn Flutter Widgets');
+                                  },
+                                ),
+                                const SizedBox(width: 20),
+                              ],
                             ),
                           ),
-
-                        // Chat Messages Area
-                        if (_isChatSubmitted)
-                          Flexible(
+                        ),
+                      ],
+                     if (_isChatSubmitted)
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20.0),
                             child: ListView.builder(
-                              reverse: true, // Start from the bottom
+                              reverse: true,
                               itemCount: _messages.length,
                               itemBuilder: (context, index) {
-                                final message = _messages[_messages.length -
-                                    1 -
-                                    index]; // Reverse order
+                                final message =
+                                    _messages[_messages.length - 1 - index];
                                 return Padding(
                                   padding:
                                       const EdgeInsets.symmetric(vertical: 10),
@@ -600,12 +725,15 @@ void _editUserDetails() {
                                       ),
                                       child: Text(
                                         message.message,
-                                        style: GoogleFonts.caveat(
-                                          color: message.isUser
-                                              ? Colors.white
-                                              : Colors.black,
-                                          fontSize: 25,
-                                        ),
+                                        style: message.isUser
+                                            ? GoogleFonts.caveat(
+                                                color: Colors.white,
+                                                fontSize: isDesktop ? 40 : 25,
+                                              )
+                                            : GoogleFonts.fredoka(
+                                                color: Colors.black,
+                                                fontSize: isDesktop ? 40 : 25,
+                                              ),
                                       ),
                                     ),
                                   ),
@@ -613,31 +741,23 @@ void _editUserDetails() {
                               },
                             ),
                           ),
-                      ],
-                    ),
+                        ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-
-          // Toggle between the icon bar and search bar
           _showIconBar ? _buildIconBar() : _buildSearchBar(),
         ],
       ),
     );
   }
 
-  // Function to create the icon bar similar to the one in the image
-  // F// Function to create the icon bar with larger icons
   Widget _buildIconBar() {
     return Container(
-      // Modify the padding inside the bar
       padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 20.0),
-      // Modify the margin at the bottom to increase spacing from the screen's bottom
-      margin: const EdgeInsets.fromLTRB(
-          16, 0, 16, 40), // Increase the last value to move the bar up
-
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 40),
       decoration: BoxDecoration(
         color: const Color(0xFF112946),
         borderRadius: BorderRadius.circular(30),
@@ -649,48 +769,39 @@ void _editUserDetails() {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          // First icon: People/group icon with larger size
           IconButton(
             icon: const Icon(Icons.groups, color: Colors.white),
-            iconSize: 30.0, // Increase the icon size here
+            iconSize: 30.0,
             onPressed: _showAboutUs,
           ),
-          // Second icon: Plus icon with larger size
           IconButton(
             icon: const Icon(Icons.add, color: Colors.white),
-            iconSize: 30.0, // Increase the icon size here
+            iconSize: 30.0,
             onPressed: () {
               setState(() {
-                // Reset the chat to its default state
                 _messages.clear();
                 _isChatSubmitted = false;
-                _controller.clear(); // Clear the input field
-                _searchController.clear(); // Clear the search field if needed
-                _showIconBar = true; // Ensure the icon bar is visible
+                _controller.clear();
+                _searchController.clear();
+                _showIconBar = true;
               });
             },
           ),
-          // Third icon: Search icon with larger size
           IconButton(
             icon: const Icon(Icons.search, color: Colors.white),
-            iconSize: 30.0, // Increase the icon size here
-            onPressed:
-                _onSearchIconPressed, // Toggle to the search bar when search is clicked
+            iconSize: 30.0,
+            onPressed: _onSearchIconPressed,
           ),
-          // Fourth icon: Gear/settings icon with larger size
           IconButton(
             icon: const Icon(Icons.settings, color: Colors.white),
-            iconSize: 30.0, // Increase the icon size here
-            onPressed: () {
-              _showUserDetails();
-            },
+            iconSize: 30.0,
+            onPressed: _showUserDetails,
           ),
-          // Fifth icon: Collection or library icon with larger size
           IconButton(
             icon: const Icon(Icons.library_books, color: Colors.white),
-            iconSize: 30.0, // Increase the icon size here
+            iconSize: 30.0,
             onPressed: () {
-              // Define what happens when this icon is pressed
+              _showRecentHistory();
             },
           ),
         ],
@@ -698,7 +809,6 @@ void _editUserDetails() {
     );
   }
 
-  // Function to create the search bar similar to the text input area with send and mic icons
   Widget _buildSearchBar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
